@@ -1,2 +1,2 @@
-discord.py[voice]
-dice
+discord.py[voice]==2.5.2
+dice==4.0.0
