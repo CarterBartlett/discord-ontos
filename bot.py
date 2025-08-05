@@ -1,23 +1,15 @@
-import discord
 from discord.ext.commands import Bot
-from discord import app_commands
 import json
-import importlib
-import sys
+import intents
 
 BOT_TOKEN = 'MTQwMjIzNjE0MzAxMzIwNDAwOA.GG9DZK.rNXUHGW4vNw_aPS5kTL0L_6YON1Qnhl1RkwbLo'
 
-intents = discord.Intents.default()
-intents.messages = True
-intents.message_content = True
-intents.bans = False
-
-bot = Bot('!', intents=intents)
+bot = Bot('!', intents=intents.ApplicationIntents())
 
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}!')
-    print(f'Invite link: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions={intents.value}&scope=bot')
+    print(f'Invite link: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions={bot.intents.value}&scope=bot')
 
     with open('settings.json', 'r') as f:
         settings = json.load(f)
