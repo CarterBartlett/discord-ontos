@@ -1,8 +1,9 @@
 import discord
 
-class ApplicationIntents(discord.Intents):
-    def __init__(self):
-        super().__init__()
-        self = discord.Intents.default()
-        self.message_content = True
-        self.bans = False
+def ApplicationIntents():
+    intents = discord.Intents.default()
+    intents.message_content = True
+    intents.bans = False
+    intents.presences = True
+    intents.voice_states = True
+    return intents

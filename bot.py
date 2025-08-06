@@ -1,14 +1,15 @@
 from discord.ext.commands import Bot
 import json
-import intents
+from intents import ApplicationIntents
 
 BOT_TOKEN = 'MTQwMjIzNjE0MzAxMzIwNDAwOA.GG9DZK.rNXUHGW4vNw_aPS5kTL0L_6YON1Qnhl1RkwbLo'
 
-bot = Bot('!', intents=intents.ApplicationIntents())
+bot = Bot('!', intents=ApplicationIntents())
 
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}!')
+    print(f'Intents value - {bot.intents.value}')
     print(f'Invite link: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions={bot.intents.value}&scope=bot')
 
     with open('settings.json', 'r') as f:
