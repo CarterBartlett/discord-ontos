@@ -1,8 +1,15 @@
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 from discord.ext.commands import Bot
 import json
 from intents import ApplicationIntents
+import os
 
-BOT_TOKEN = 'MTQwMjIzNjE0MzAxMzIwNDAwOA.GG9DZK.rNXUHGW4vNw_aPS5kTL0L_6YON1Qnhl1RkwbLo'
+BOT_TOKEN = os.getenv('DISCORD_API_TOKEN', None)
+if not BOT_TOKEN:
+    raise ValueError("DISCORD_API_TOKEN not found in environment variables.")
 
 bot = Bot('!', intents=ApplicationIntents())
 
