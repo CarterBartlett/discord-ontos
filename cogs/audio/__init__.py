@@ -1,5 +1,18 @@
 from discord.ext import commands
-from discord import app_commands
+from discord import app_commands, FFmpegOpusAudio
+import yt_dlp
+
+yt_dlp_opts = {
+    'format': 'bestaudio/best',
+    'noplaylist': True,
+    'youtube_include_dash_manifest': False,
+    'youtube_include_hls_manifest': False,
+}
+
+ffmpeg_opts = {
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+    'options': '-vn -c:a libopus -b:a 96k'
+}
 
 class Audio(commands.Cog):
     def __init__(self, bot):
@@ -26,9 +39,23 @@ class Audio(commands.Cog):
         else:
             await interaction.response.send_message('I am not connected to a voice channel!', ephemeral=True)
 
-    # TODO: Implement play functionality
+    # TODO: Create queueing system
     @app_commands.command(name='play', description='Play audio in the voice channel')
     async def play(self, interaction, url: str):
-        return True  # Placeholder for play functionality
+        if not interaction.guild.voice_client:
+            channel = interaction.user.voice.channel
+            await channel.connect()
+        
+        voice_client = interaction.guild.voice_client
+
+        with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            audio_stream_url = info['url']
+        
+        source = FFmpegOpusAudio(audio_stream_url, **ffmpeg_opts, executable='cogs\\audio\\bin\\ffmpeg\\ffmpeg.exe')
+
+        voice_client.play(source)
+        return True
+
 async def setup(bot):
     await bot.add_cog(Audio(bot=bot))
