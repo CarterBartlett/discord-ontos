@@ -125,7 +125,21 @@ class Audio(commands.Cog):
 
         voice_client.pause()
         await interaction.response.send_message('Paused the current song.', ephemeral=True)
-    
+
+    @app_commands.command(name='stop', description='Stop the current song and clear the queue')
+    async def stop(self, interaction):
+        voice_client = interaction.guild.voice_client
+
+        if not voice_client:
+            return await interaction.response.send_message('I am not connected to a voice channel!', ephemeral=True)
+
+        voice_client.stop()
+        current_playlist = PLAYLISTS.get(str(interaction.guild.id))
+        if current_playlist:
+            current_playlist.clear()
+
+        await interaction.response.send_message('Stopped the current song and cleared the queue.', ephemeral=True)
+
     @app_commands.command(name='resume', description='Resume the paused song')
     async def resume(self, interaction):
         voice_client = interaction.guild.voice_client
@@ -171,13 +185,13 @@ async def play_song(voice_client, guild_id, channel):
 
     # Reset the playlist if looping is enabled
     if settings.get('loop', False) and current_playlist and current_playlist.at_end_of_playlist():
-        current_playlist.pointer = 0
+        current_playlist.reset_pointer()
 
     if not current_playlist or current_playlist.is_empty() or not current_playlist.has_remaining_or_current():
         await voice_client.disconnect()
         return
 
-    song = current_playlist.get_next()
+    song = current_playlist.step()
 
     if not song:
         await voice_client.disconnect()
