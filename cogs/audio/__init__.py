@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord import app_commands, FFmpegOpusAudio
+from discord import app_commands, FFmpegOpusAudio, PCMVolumeTransformer
 import yt_dlp
 from collections import deque
 import asyncio
@@ -67,38 +67,39 @@ class Audio(commands.Cog):
     @app_commands.command(name='play', description='Play audio in the voice channel')
     @app_commands.describe(query='Search query or URL')
     async def play(self, interaction, query: str):
-        await interaction.response.defer(ephemeral=True)    
+        await interaction.response.defer(ephemeral=True)
+        
+        voice_client = None
+        guild_id = str(interaction.guild.id)
 
+        # Join voice channel if not already connected and get voice client
         if not interaction.guild.voice_client:
             if not interaction.user.voice.channel:
                 return await interaction.response.send_message('You are not connected to a voice channel!', ephemeral=True)
-            channel = interaction.user.voice.channel
-            await channel.connect()
-        
-        guild_id = str(interaction.guild.id)
-        voice_client = interaction.guild.voice_client
-        voice_channel = interaction.channel
-
+            voice_client = await join_voice_channel(interaction, interaction.user.voice.channel)
+        else:
+            voice_client = interaction.guild.voice_client
+            
+        # Create or get the playlist for the guild
         if guild_id not in PLAYLISTS:
             PLAYLISTS[guild_id] = Playlist()
 
+        # Add the song to the playlist
         with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
-            if (query.startswith('http://') or query.startswith('https://')):
+            if (query.startswith('http://') or query.startswith('https://')): # Direct URL
                 info = ydl.extract_info(query, download=False)
-            else:
+            else: # Search query
                 info = ydl.extract_info(f'ytsearch:{query}', download=False)
                 info = info['entries'][0] if 'entries' in info else info
 
-            url = info['url']
-            title = info['title']
-            PLAYLISTS[guild_id].add((url, title))
+            PLAYLISTS[guild_id].add({'id': info['id'], 'url': info['url'], 'title': info['title'], 'duration': info['duration']})
 
 
         if voice_client.is_playing():
-            await interaction.followup.send(f'Added to queue: {title}')
+            await interaction.followup.send(f'Added to queue: {info["title"]}')
         else:
-            await interaction.followup.send(f'Now playing: {title}')
-            await play_song(voice_client, guild_id, voice_channel)
+            await interaction.followup.send(f'Now playing: {info["title"]}')
+            await play_song(voice_client, guild_id, voice_client.channel)
 
         return True
 
@@ -179,6 +180,31 @@ class Audio(commands.Cog):
         GUILD_SETTINGS[str(interaction.guild.id)] = settings
         await interaction.response.send_message(f"Looping is now {'enabled' if settings['loop'] else 'disabled'}.", ephemeral=True)
     
+    # TODO: Test this command
+    @app_commands.command(name='volume', description='Set the volume of the bot')
+    async def volume(self, interaction, level: int):
+        voice_client = interaction.guild.voice_client
+
+        if not voice_client:
+            return await interaction.response.send_message('I am not connected to a voice channel!', ephemeral=True)
+
+        if level < 0 or level > 100:
+            return await interaction.response.send_message('Volume level must be between 0 and 100.', ephemeral=True)
+
+        voice_client.source = PCMVolumeTransformer(voice_client.source, volume=level / 100)
+        await interaction.response.send_message(f"Volume set to {level}%.", ephemeral=True)
+
+async def join_voice_channel(interaction, channel, **kwargs):
+    silent = kwargs.get('silent', False)
+
+    try:
+        voice_client = await channel.connect()
+        return voice_client
+    except Exception as e:
+        if not silent:
+            await interaction.response.send_message(f"Error connecting to voice channel: {e}", ephemeral=True)
+        return None
+
 async def play_song(voice_client, guild_id, channel):
     current_playlist = PLAYLISTS.get(guild_id)
     settings = GUILD_SETTINGS.get(str(guild_id), {})
@@ -191,6 +217,7 @@ async def play_song(voice_client, guild_id, channel):
         await voice_client.disconnect()
         return
 
+    # Step through the playlist to get the next song    
     song = current_playlist.step()
 
     if not song:
@@ -198,7 +225,8 @@ async def play_song(voice_client, guild_id, channel):
         current_playlist.clear()
         return
 
-    audio_url, title = song
+    title = song.get('title', 'Unknown Title')
+    audio_url = song.get('url', None)
 
     source = FFmpegOpusAudio(audio_url, **ffmpeg_opts, executable='cogs\\audio\\bin\\ffmpeg\\ffmpeg.exe')
 
