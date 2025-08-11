@@ -7,6 +7,7 @@ class Dice(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name='roll', description='Roll a dice!')
+    @app_commands.describe(notation='Dice notation (e.g., 2d6, 1d20)')
     async def roll(self, interaction, notation: str):
         try:
             result = dice.roll(notation)
