@@ -2,3 +2,4 @@ discord.py[voice] @ git+https://github.com/rapptz/discord.py
 dice==4.0.0
 python-dotenv==1.1.1
 yt-dlp==2025.7.21
+dotenv=0.9.9
