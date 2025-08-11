@@ -2,7 +2,9 @@
 
 ## Installation
 
-- Run `pip install -r requirements.txt`
+- Run the following commands:
+    - `python -m venv venv`
+    - `pip install -r requirements.txt`
 
 ## Running the bot
 
