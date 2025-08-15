@@ -226,6 +226,7 @@ class Audio(commands.Cog):
     @app_commands.choices(setting=[
         app_commands.Choice(name='Loop', value='loop')
     ])
+    @app_commands.checks.has_permissions(administrator=True)
     async def defaults(self, interaction, action: str = 'View', setting: str = None, value: str = None):
         guild_id = str(interaction.guild.id)
         action = action.lower()
