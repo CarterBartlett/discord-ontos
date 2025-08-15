@@ -301,7 +301,11 @@ async def play_song(voice_client, guild_id, channel):
     title = song.get('title', 'Unknown Title')
     audio_url = song.get('url', None)
 
-    source = FFmpegOpusAudio(audio_url, **ffmpeg_opts, executable='cogs\\audio\\bin\\ffmpeg\\ffmpeg.exe')
+    ffmpeg_exe_path = 'cogs\\audio\\bin\\ffmpeg\\ffmpeg.exe'
+    if os.path.exists(ffmpeg_exe_path):
+        source = FFmpegOpusAudio(audio_url, **ffmpeg_opts, executable=ffmpeg_exe_path)
+    else:
+        source = FFmpegOpusAudio(audio_url, **ffmpeg_opts)
 
     def after_play(e):
         if e:
