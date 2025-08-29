@@ -23,8 +23,10 @@ if env_cookies:
         env_cookies = decoded_bytes.decode('utf-8')
     except Exception:
         pass
-
-    cookies_path = os.path.abspath('cookies.txt')
+    
+    
+    cookies_path = os.path.dirname(os.path.abspath(__file__)) + '/cookies.txt'
+    print()
     with open(cookies_path, 'w') as f:
         f.write(env_cookies)
         yt_dlp_opts['cookiefile'] = cookies_path
