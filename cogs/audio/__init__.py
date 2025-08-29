@@ -4,6 +4,7 @@ import asyncio
 from cogs.audio.utils.playlist import Playlist
 import os
 import json
+
 from . import ffmpeg
 from . import yt_dlp
 
@@ -93,8 +94,12 @@ class Audio(commands.Cog):
     @app_commands.command(name='play', description='Play audio in the voice channel')
     @app_commands.describe(query='Search query or URL')
     async def play(self, interaction, query: str):
-        await interaction.response.defer(ephemeral=True)    
+        await interaction.response.defer(ephemeral=True)
+        
+        voice_client = None
+        guild_id = str(interaction.guild.id)
 
+        # Join voice channel if not already connected and get voice client
         if not interaction.guild.voice_client:
             if not interaction.user.voice or not interaction.user.voice.channel:
                 await interaction.followup.send('You are not connected to a voice channel!', ephemeral=True)
@@ -116,7 +121,7 @@ class Audio(commands.Cog):
             PLAYLISTS[guild_id].add((url, title))
 
         if voice_client.is_playing():
-            await interaction.followup.send(f'Added to queue: {title}')
+            await interaction.followup.send(f'Added to queue: {info["title"]}')
         else:
             await interaction.followup.send(f'Now playing: {title}')
             await play_song(voice_client, guild_id, voice_channel, self.ffmpeg)
@@ -221,7 +226,7 @@ class Audio(commands.Cog):
             voice_client.source = PCMVolumeTransformer(voice_client.original_source, volume=level / 100)
             
         await interaction.response.send_message(f"Volume set to {level}%.", ephemeral=True)
-    
+
     @app_commands.command(name='defaults', description='View or set default settings for the guild')
     @app_commands.describe(action='Action to perform (view/set)', setting='Setting to change', value='Value for the setting')
     @app_commands.choices(action=[
@@ -269,6 +274,7 @@ async def play_song(voice_client, guild_id, channel, ffmpeg):
         await voice_client.disconnect()
         return
 
+    # Step through the playlist to get the next song    
     song = current_playlist.step()
 
     if not song:
@@ -276,7 +282,8 @@ async def play_song(voice_client, guild_id, channel, ffmpeg):
         current_playlist.clear()
         return
 
-    audio_url, title = song
+    title = song.get('title', 'Unknown Title')
+    audio_url = song.get('url', None)
 
     # Use FFmpegPCMAudio for volume support
     source = FFmpegPCMAudio(audio_url, **ffmpeg.opts, executable=ffmpeg.executable)
@@ -289,7 +296,6 @@ async def play_song(voice_client, guild_id, channel, ffmpeg):
     voice_client.play(source, after=after_play)
 
     asyncio.create_task(channel.send(f'Now playing: {title}'))
-
 
 def set_guild_defaults(guild_id, new_defaults):
     if len(new_defaults) == 0:
