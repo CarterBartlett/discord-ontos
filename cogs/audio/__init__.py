@@ -1,7 +1,6 @@
 from discord.ext import commands
 from discord import app_commands, FFmpegOpusAudio
 import yt_dlp
-from collections import deque
 import asyncio
 from cogs.audio.utils.playlist import Playlist
 import os
@@ -25,7 +24,7 @@ if env_cookies:
         pass
     
     
-    cookies_path = os.path.dirname(os.path.abspath(__file__)) + '/cookies.txt'
+    cookies_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.txt')
     print()
     with open(cookies_path, 'w') as f:
         f.write(env_cookies)
