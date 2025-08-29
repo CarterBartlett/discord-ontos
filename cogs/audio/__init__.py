@@ -70,8 +70,9 @@ class Audio(commands.Cog):
         await interaction.response.defer(ephemeral=True)    
 
         if not interaction.guild.voice_client:
-            if not interaction.user.voice.channel:
-                return await interaction.response.send_message('You are not connected to a voice channel!', ephemeral=True)
+            if not interaction.user.voice or not interaction.user.voice.channel:
+                await interaction.followup.send('You are not connected to a voice channel!', ephemeral=True)
+                return
             channel = interaction.user.voice.channel
             await channel.connect()
         
@@ -87,7 +88,6 @@ class Audio(commands.Cog):
             url = info['url']
             title = info['title']
             PLAYLISTS[guild_id].add((url, title))
-
 
         if voice_client.is_playing():
             await interaction.followup.send(f'Added to queue: {title}')

@@ -20,8 +20,9 @@ class ExtendedYoutubeDL(yt_dlp.YoutubeDL):
         passed_opts = kwargs.get('opts', {})
         opts = {**self.opts, **passed_opts}
         with yt_dlp.YoutubeDL(opts) as ydl:
-            if opts.cookie:
-                ydl.cookiejar.set_cookie(opts.cookie)
+            cookie = opts.get('cookie')
+            if cookie:
+                ydl.cookiejar.set_cookie(cookie)
             if url.startswith('http://') or url.startswith('https://'):
                 return ydl.extract_info(url, **kwargs)
             else:
