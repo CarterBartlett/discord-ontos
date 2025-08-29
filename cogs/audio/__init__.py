@@ -5,6 +5,7 @@ import asyncio
 from cogs.audio.utils.playlist import Playlist
 import os
 import base64
+import shutil
 
 yt_dlp_opts = {
     'format': 'bestaudio/best',
@@ -223,7 +224,14 @@ async def play_song(voice_client, guild_id, channel):
 
     audio_url, title = song
 
-    source = FFmpegOpusAudio(audio_url, **ffmpeg_opts, executable='cogs\\audio\\bin\\ffmpeg\\ffmpeg.exe')
+    ffmpeg_path = shutil.which('ffmpeg')
+    if ffmpeg_path:
+        ffmpeg_executable = ffmpeg_path
+        print('Using ffmpeg installed on local machine.')
+    else:
+        ffmpeg_executable = 'cogs\\audio\\bin\\ffmpeg\\ffmpeg.exe'
+        print('Using ffmpeg inside of bin folder.')
+    source = FFmpegOpusAudio(audio_url, **ffmpeg_opts, executable=ffmpeg_executable)
 
     def after_play(e):
         if e:
