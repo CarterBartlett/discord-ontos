@@ -1,45 +1,20 @@
 from discord.ext import commands
 from discord import app_commands, FFmpegOpusAudio
-import yt_dlp
 import asyncio
 from cogs.audio.utils.playlist import Playlist
 import os
 import base64
-import shutil
+from . import ffmpeg
+from . import yt_dlp
 
-yt_dlp_opts = {
-    'format': 'bestaudio/best',
-    'noplaylist': True,
-    'youtube_include_dash_manifest': False,
-    'youtube_include_hls_manifest': False,
-}
-
+ydl = yt_dlp.ExtendedYoutubeDL()
 env_cookies = os.environ.get('YOUTUBE_COOKIES')
 if env_cookies: 
-    try:
-        # Check if env_cookies is base64 encoded (contains only base64 chars and is decodable)
-        base64_bytes = env_cookies.encode('utf-8')
-        decoded_bytes = base64.b64decode(base64_bytes, validate=True)
-        env_cookies = decoded_bytes.decode('utf-8')
-    except Exception:
-        pass
-    
-    
-    cookies_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.txt')
-    print()
-    with open(cookies_path, 'w') as f:
-        f.write(env_cookies)
-        yt_dlp_opts['cookiefile'] = cookies_path
-        print(f"Using provided YouTube cookies for yt-dlp. Cookies file located at: {cookies_path}")
+    ydl.set_cookie(env_cookies)
 else:
     if os.path.exists('cookies.txt'):
         os.remove('cookies.txt')
     print('No cookies specified for yt-dlp.')
-
-ffmpeg_opts = {
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn -c:a libopus -b:a 96k'
-}
 
 PLAYLISTS = {}
 GUILD_SETTINGS = {}
@@ -47,6 +22,7 @@ GUILD_SETTINGS = {}
 class Audio(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.ffmpeg = ffmpeg.FFmpeg()
     
     @commands.Cog.listener()
     async def on_ready(self):
@@ -106,13 +82,8 @@ class Audio(commands.Cog):
         if guild_id not in PLAYLISTS:
             PLAYLISTS[guild_id] = Playlist()
 
-        with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
-            if (query.startswith('http://') or query.startswith('https://')):
-                info = ydl.extract_info(query, download=False)
-            else:
-                info = ydl.extract_info(f'ytsearch:{query}', download=False)
-                info = info['entries'][0] if 'entries' in info else info
-
+        with yt_dlp.ExtendedYoutubeDL() as ydl:
+            info = ydl.extract_info_one(query)
             url = info['url']
             title = info['title']
             PLAYLISTS[guild_id].add((url, title))
@@ -122,7 +93,7 @@ class Audio(commands.Cog):
             await interaction.followup.send(f'Added to queue: {title}')
         else:
             await interaction.followup.send(f'Now playing: {title}')
-            await play_song(voice_client, guild_id, voice_channel)
+            await play_song(voice_client, guild_id, voice_channel, self.ffmpeg)
 
         return True
 
@@ -203,7 +174,7 @@ class Audio(commands.Cog):
         GUILD_SETTINGS[str(interaction.guild.id)] = settings
         await interaction.response.send_message(f"Looping is now {'enabled' if settings['loop'] else 'disabled'}.", ephemeral=True)
     
-async def play_song(voice_client, guild_id, channel):
+async def play_song(voice_client, guild_id, channel, ffmpeg):
     current_playlist = PLAYLISTS.get(guild_id)
     settings = GUILD_SETTINGS.get(str(guild_id), {})
 
@@ -224,19 +195,12 @@ async def play_song(voice_client, guild_id, channel):
 
     audio_url, title = song
 
-    ffmpeg_path = shutil.which('ffmpeg')
-    if ffmpeg_path:
-        ffmpeg_executable = ffmpeg_path
-        print('Using ffmpeg installed on local machine.')
-    else:
-        ffmpeg_executable = 'cogs\\audio\\bin\\ffmpeg\\ffmpeg.exe'
-        print('Using ffmpeg inside of bin folder.')
-    source = FFmpegOpusAudio(audio_url, **ffmpeg_opts, executable=ffmpeg_executable)
+    source = FFmpegOpusAudio(audio_url, **ffmpeg.opts, executable=ffmpeg.executable)
 
     def after_play(e):
         if e:
             print(f'Error playing {title}: {e}')
-        asyncio.run_coroutine_threadsafe(play_song(voice_client, guild_id, channel), voice_client.loop)
+        asyncio.run_coroutine_threadsafe(play_song(voice_client, guild_id, channel, ffmpeg), voice_client.loop)
 
     voice_client.play(source, after=after_play)
 

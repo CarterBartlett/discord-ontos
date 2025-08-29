@@ -2,3 +2,4 @@ discord.py[voice]
 python-dotenv==1.1.1
 yt-dlp
 dotenv==0.9.9
+requests
