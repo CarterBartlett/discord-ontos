@@ -4,6 +4,8 @@ import yt_dlp
 from collections import deque
 import asyncio
 from cogs.audio.utils.playlist import Playlist
+import os
+import base64
 
 yt_dlp_opts = {
     'format': 'bestaudio/best',
@@ -11,6 +13,24 @@ yt_dlp_opts = {
     'youtube_include_dash_manifest': False,
     'youtube_include_hls_manifest': False,
 }
+
+env_cookies = os.environ.get('YOUTUBE_COOKIES')
+if env_cookies:
+    with open('cookies.txt', 'w') as f:
+        try:
+            # Check if env_cookies is base64 encoded
+            decoded = base64.b64decode(env_cookies, validate=True)
+            # If decoding succeeds and the result is ascii/text, use it
+            env_cookies = decoded.decode('utf-8')
+        except Exception:
+            pass
+        f.write(env_cookies)
+        yt_dlp_opts['cookiefile'] = 'cookies.txt'
+        print("Using provided YouTube cookies for yt-dlp.")
+else:
+    if os.path.exists('cookies.txt'):
+        os.remove('cookies.txt')
+    print('No cookies specified for yt-dlp.')
 
 ffmpeg_opts = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
