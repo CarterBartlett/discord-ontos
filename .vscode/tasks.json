@@ -30,6 +30,16 @@
         "reveal": "always"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Run Pytest",
+      "type": "shell",
+      "command": "venv\\Scripts\\pytest",
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
     }
   ]
 }
