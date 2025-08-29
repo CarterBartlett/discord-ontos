@@ -13,11 +13,13 @@ class FFmpeg:
             self.executable = ffmpeg_path
         else:
             self.executable = self.__setup_ffmpeg()
+            shutil.rmtree(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ffmpeg_temp'), ignore_errors=True)
 
         self.opts = {
             'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-            'options': '-vn -c:a libopus -b:a 96k'
+            'options': '-vn'
         }
+        
 
     def __setup_ffmpeg(self):
         url = self.__get_ffmpeg_download_url()

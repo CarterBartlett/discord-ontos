@@ -1,9 +1,9 @@
 from discord.ext import commands
-from discord import app_commands, FFmpegOpusAudio
+from discord import app_commands, FFmpegOpusAudio, PCMVolumeTransformer, FFmpegPCMAudio
 import asyncio
 from cogs.audio.utils.playlist import Playlist
 import os
-import base64
+import json
 from . import ffmpeg
 from . import yt_dlp
 
@@ -18,11 +18,37 @@ else:
 
 PLAYLISTS = {}
 GUILD_SETTINGS = {}
+GUILD_DEFAULTS = {}
 
 class Audio(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ffmpeg = ffmpeg.FFmpeg()
+
+        if not os.path.exists('cogs/audio/guild_defaults.json'):
+            print("Creating guild defaults file...")
+            # Create the guild defaults file if it doesn't exist
+            with open('cogs/audio/guild_defaults.json', 'w') as f:
+                json.dump({}, f)
+        
+        # Load guild settings from the JSON file
+        try:
+            with open('cogs/audio/guild_defaults.json', 'r') as f:
+                GUILD_DEFAULTS.update(json.load(f))
+        except FileNotFoundError:
+            print("Guild defaults file not found, starting with empty settings.")
+        except json.JSONDecodeError:
+            print("Error decoding guild defaults JSON, starting with empty settings.")
+        
+        # Initialize GUILD_SETTINGS with defaults
+        for guild_id in GUILD_DEFAULTS.keys():
+            if guild_id not in GUILD_SETTINGS:
+                GUILD_SETTINGS[guild_id] = GUILD_DEFAULTS[guild_id]
+
+        # Leave all guild voice channels on first startup to prevent issues with desynchronization
+        for guild in self.bot.guilds:
+            if guild.voice_client:
+                asyncio.create_task(guild.voice_client.disconnect())
     
     @commands.Cog.listener()
     async def on_ready(self):
@@ -173,7 +199,64 @@ class Audio(commands.Cog):
 
         GUILD_SETTINGS[str(interaction.guild.id)] = settings
         await interaction.response.send_message(f"Looping is now {'enabled' if settings['loop'] else 'disabled'}.", ephemeral=True)
+
+    @app_commands.command(name='volume', description='Set the volume of the bot')
+    @app_commands.describe(level='Volume level (0-100)')
+    async def volume(self, interaction, level: int):
+        voice_client = interaction.guild.voice_client
+
+        if not voice_client:
+            return await interaction.response.send_message('I am not connected to a voice channel!', ephemeral=True)
+
+        if level < 0 or level > 200:
+            return await interaction.response.send_message('Volume level must be between 0 and 200.', ephemeral=True)
+
+        # If the source is a PCMVolumeTransformer, update its volume
+        if isinstance(voice_client.source, PCMVolumeTransformer):
+            voice_client.source.volume = level / 100
+        else:
+            # Only wrap the original source if not already wrapped
+            if not hasattr(voice_client, 'original_source'):
+                voice_client.original_source = voice_client.source
+            voice_client.source = PCMVolumeTransformer(voice_client.original_source, volume=level / 100)
+            
+        await interaction.response.send_message(f"Volume set to {level}%.", ephemeral=True)
     
+    @app_commands.command(name='defaults', description='View or set default settings for the guild')
+    @app_commands.describe(action='Action to perform (view/set)', setting='Setting to change', value='Value for the setting')
+    @app_commands.choices(action=[
+        app_commands.Choice(name='View', value='view'),
+        app_commands.Choice(name='Set', value='set')
+    ])
+    @app_commands.choices(setting=[
+        app_commands.Choice(name='Loop', value='loop')
+    ])
+    @app_commands.checks.has_permissions(administrator=True)
+    async def defaults(self, interaction, action: str = 'View', setting: str = None, value: str = None):
+        guild_id = str(interaction.guild.id)
+        action = action.lower()
+        setting = setting.lower() if setting else None
+
+        if not guild_id in GUILD_DEFAULTS:
+            GUILD_DEFAULTS[guild_id] = {}
+
+        # View current defaults
+        if action == 'view':
+            current_defaults = GUILD_DEFAULTS.get(guild_id, {})
+            await interaction.response.send_message(f"Current default settings\n{'\n'.join([f'{k.capitalize()}: {v}' for k, v in current_defaults.items()])}", ephemeral=True)
+
+        # Set new defaults
+        if action == 'set' and setting and value:
+
+            # Convert boolean settings
+            if setting in ['loop']:
+                if value.lower() in ['true', '1', 'yes', 'y', 'on', 'enable']:
+                    set_guild_defaults(guild_id, {setting: True})
+                elif value.lower() in ['false', '0', 'no', 'n', 'off', 'disable']:
+                    set_guild_defaults(guild_id, {setting: False})
+
+            await interaction.response.send_message(f"Default setting '{setting}' updated to: {value}", ephemeral=True)
+
 async def play_song(voice_client, guild_id, channel, ffmpeg):
     current_playlist = PLAYLISTS.get(guild_id)
     settings = GUILD_SETTINGS.get(str(guild_id), {})
@@ -195,7 +278,8 @@ async def play_song(voice_client, guild_id, channel, ffmpeg):
 
     audio_url, title = song
 
-    source = FFmpegOpusAudio(audio_url, **ffmpeg.opts, executable=ffmpeg.executable)
+    # Use FFmpegPCMAudio for volume support
+    source = FFmpegPCMAudio(audio_url, **ffmpeg.opts, executable=ffmpeg.executable)
 
     def after_play(e):
         if e:
@@ -205,6 +289,31 @@ async def play_song(voice_client, guild_id, channel, ffmpeg):
     voice_client.play(source, after=after_play)
 
     asyncio.create_task(channel.send(f'Now playing: {title}'))
+
+
+def set_guild_defaults(guild_id, new_defaults):
+    if len(new_defaults) == 0:
+        return
+
+    if len(new_defaults.items() - GUILD_DEFAULTS.get(str(guild_id), {}).items()) == 0:
+        return
+
+    GUILD_DEFAULTS[str(guild_id)] = new_defaults | GUILD_DEFAULTS.get(str(guild_id), {})
+
+    # Save the updated defaults to the JSON file
+    print(f"Updating defaults for guild {guild_id}: {new_defaults}")
+    if len(new_defaults) == 0:
+        return
+    
+    if len(new_defaults.items() - GUILD_DEFAULTS.get(str(guild_id), {}).items()) == 0:
+        return
+
+    GUILD_DEFAULTS[str(guild_id)] = new_defaults | GUILD_DEFAULTS.get(str(guild_id), {})
+
+    # Save the updated defaults to the JSON file
+    print(f"Updating defaults for guild {guild_id}: {new_defaults}")
+    with open('cogs/audio/guild_defaults.json', 'w') as f:
+        json.dump(GUILD_DEFAULTS, f, indent=4)
 
 async def setup(bot):
     await bot.add_cog(Audio(bot=bot))
