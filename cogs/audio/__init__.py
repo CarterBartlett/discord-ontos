@@ -15,18 +15,20 @@ yt_dlp_opts = {
 }
 
 env_cookies = os.environ.get('YOUTUBE_COOKIES')
-if env_cookies:
-    with open('cookies.txt', 'w') as f:
-        try:
-            # Check if env_cookies is base64 encoded
-            decoded = base64.b64decode(env_cookies, validate=True)
-            # If decoding succeeds and the result is ascii/text, use it
-            env_cookies = decoded.decode('utf-8')
-        except Exception:
-            pass
+if env_cookies: 
+    try:
+        # Check if env_cookies is base64 encoded (contains only base64 chars and is decodable)
+        base64_bytes = env_cookies.encode('utf-8')
+        decoded_bytes = base64.b64decode(base64_bytes, validate=True)
+        env_cookies = decoded_bytes.decode('utf-8')
+    except Exception:
+        pass
+
+    cookies_path = os.path.abspath('cookies.txt')
+    with open(cookies_path, 'w') as f:
         f.write(env_cookies)
-        yt_dlp_opts['cookiefile'] = 'cookies.txt'
-        print("Using provided YouTube cookies for yt-dlp.")
+        yt_dlp_opts['cookiefile'] = cookies_path
+        print(f"Using provided YouTube cookies for yt-dlp. Cookies file located at: {cookies_path}")
 else:
     if os.path.exists('cookies.txt'):
         os.remove('cookies.txt')
