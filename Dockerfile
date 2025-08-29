@@ -36,14 +36,14 @@ RUN apt-get update && apt-get install -y ffmpeg git && rm -rf /var/lib/apt/lists
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Switch to the non-privileged user to run the application.
-USER appuser
-
 
 # Copy the source code into the container.
 COPY . .
 # Ensure appuser owns all files in /app
 RUN chown -R appuser:appuser /app
+
+# Switch to the non-privileged user to run the application.
+USER appuser
 
 # Run the application.
 CMD ["python", "bot.py"]
