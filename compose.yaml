@@ -7,8 +7,6 @@ services:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - YOUTUBE_COOKIES=${YOUTUBE_COOKIES}
     volumes:
-      - ./cogs/audio/cache:/app/cogs/audio/cache
-      - ./cogs/audio/guild_defaults.json:/app/cogs/audio/guild_defaults.json
-      - ./cogs/audio/cookies.txt:/app/cogs/audio/cookies.txt
+      - .:/app
     restart: unless-stopped
     command: python bot.py
