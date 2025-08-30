@@ -276,14 +276,12 @@ async def play_song(voice_client, guild_id, channel, ffmpeg):
 
     # Step through the playlist to get the next song    
     song = current_playlist.step()
-
     if not song:
         await voice_client.disconnect()
         current_playlist.clear()
         return
 
-    title = song.get('title', 'Unknown Title')
-    audio_url = song.get('url', None)
+    audio_url, title = song  # Unpack the tuple here
 
     # Use FFmpegPCMAudio for volume support
     source = FFmpegPCMAudio(audio_url, **ffmpeg.opts, executable=ffmpeg.executable)
