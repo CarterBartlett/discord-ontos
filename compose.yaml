@@ -7,6 +7,6 @@ services:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - YOUTUBE_COOKIES=${YOUTUBE_COOKIES}
     volumes:
-      - .:/app
+      - ./:/app
     restart: unless-stopped
     command: python bot.py
