@@ -1,33 +1,14 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker Compose reference guide at
-# https://docs.docker.com/go/compose-spec-reference/
-
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
 version: '3.8'
 services:
-  discordbot:
+  discord-bot:
     build: .
     container_name: discordpy-bot
-    restart: unless-stopped
     environment:
-      - PYTHONUNBUFFERED=1
-      # Add your Discord bot token here or use a .env file
-      # - DISCORD_TOKEN=your_token_here
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - YOUTUBE_COOKIES=${YOUTUBE_COOKIES}
     volumes:
-      - .:/app
-    # Uncomment if you want to pass a .env file
-    # env_file:
-    #   - .env
-    # If you want to expose ports (for webhooks, etc), add:
-    # ports:
-    #   - "8080:8080"
-    # If you want to limit resources:
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '0.50'
-    #       memory: 512M
+      - ./cogs/audio/cache:/app/cogs/audio/cache
+      - ./cogs/audio/guild_defaults.json:/app/cogs/audio/guild_defaults.json
+      - ./cogs/audio/cookies.txt:/app/cogs/audio/cookies.txt
+    restart: unless-stopped
+    command: python bot.py
