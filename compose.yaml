@@ -4,7 +4,7 @@ services:
     build: .
     container_name: discordpy-bot
     environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_API_TOKEN=${DISCORD_TOKEN}
       - YOUTUBE_COOKIES=${YOUTUBE_COOKIES}
     restart: unless-stopped
     command: python bot.py
