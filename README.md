@@ -1,4 +1,4 @@
-# (A)nother Discord Bot
+# Discord Ontos
 
 ## Features
 - Dice rolling with dice notation
