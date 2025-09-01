@@ -1,6 +1,6 @@
 import pytest
 import random
-from cogs.dice.utils.dice_roller import DiceRoller
+from ..utils.dice_roller import DiceRoller
 
 @pytest.fixture(autouse=True)
 def set_seed():
