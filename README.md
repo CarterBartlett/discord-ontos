@@ -1,5 +1,8 @@
 # Discord Ontos
 
+## License
+This project is licensed under the Creative Commons CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. See the LICENSE file for full details.
+
 ## Features
 - Dice rolling with dice notation
 - Audio bot
