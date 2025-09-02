@@ -1,8 +1,5 @@
 # Discord Ontos
 
-## License
-This project is licensed under The Unlicense. You have explicit permission to copy, modify, publish, use, compile, sell or distribute this software for any purpose (commercial & non-commercial), by any means and either with or without attribution. [Full details at unlicense.org](https://unlicense.org/).
-
 ## Features
 - Dice rolling with dice notation
 - Audio bot
@@ -26,3 +23,6 @@ This project is licensed under The Unlicense. You have explicit permission to co
 - YOUTUBE_COOKIES - A base64 encoded set of Youtube Cookies (Optional, but highly recommended)
     - For this, I recommend using [cookies.txt](https://addons.mozilla.org/en-GB/firefox/addon/cookies-txt/) for Firefox or [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc?pli=1) for Chromium browsers
     - After obtaining the cookies, encode them into base64 before passing them into the environment variables, using a service such as [base64encode.org](https://www.base64encode.org/)
+
+## License
+This project is licensed under The Unlicense. You have explicit permission to copy, modify, publish, use, compile, sell or distribute this software for any purpose (commercial & non-commercial), by any means and either with or without attribution. [Full details at unlicense.org](https://unlicense.org/).
