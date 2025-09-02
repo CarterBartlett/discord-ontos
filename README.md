@@ -1,7 +1,7 @@
 # Discord Ontos
 
 ## License
-This project is licensed under the Creative Commons CC0 1.0 Universal (CC0 1.0) Public Domain Dedication. See the LICENSE file for full details.
+This project is licensed under The Unlicense. You have explicit permission to copy, modify, publish, use, compile, sell or distribute this software for any purpose (commercial & non-commercial), by any means and either with or without attribution. [Full details at unlicense.org](https://unlicense.org/).
 
 ## Features
 - Dice rolling with dice notation
